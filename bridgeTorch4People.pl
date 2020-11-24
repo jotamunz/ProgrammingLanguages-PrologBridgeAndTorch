@@ -37,12 +37,13 @@ initial([0,l,[a,b,c,d],[]]).
 /* at the end they have all to be on the other bank and Time=17*/
 final([17,r,[],[a,b,c,d]]).
 /* opposite bank. */
-opp(l,r).  opp(r,l).
+opp(l,r).  
+opp(r,l).
 /* time for crossing the bridge - time is a system predicate */
-tim(a,1).
-tim(b,2).
-tim(c,5).
-tim(d,10).
+crossTime(a,1).
+crossTime(b,2).
+crossTime(c,5).
+crossTime(d,10).
 /* define the arcs (or move conditions from a state node) to another state(node) */
 arc([T1,F1,L1,R1], [T2,F2,L2,R2]):- opp(F1,F2),
 		((F1=l,cross(X,L1),
@@ -54,8 +55,8 @@ arc([T1,F1,L1,R1], [T2,F2,L2,R2]):- opp(F1,F2),
 take(S,L,R):- findall(Z,(member(Z,L),not(member(Z,S))),R).
 
 /* we know just one or two persons cross the bridge */
-findtime([X],Tim):- tim(X,Tim),!.
-findtime([A,B],Tim):- tim(A,Ta),tim(B,Tb),Tim is max(Ta,Tb),!.
+findtime([X],Tim):- crossTime(X,Tim),!.
+findtime([A,B],Tim):- crossTime(A,Ta),crossTime(B,Tb),Tim is max(Ta,Tb),!.
 
 /* take all the combinations of 1 person, and 2 persons from our group: [a,b,c,d] */
 cross(X,L):- comb(1,L,X); comb(2,L,X).
