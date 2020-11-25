@@ -1,11 +1,6 @@
-
 % Estados 
 initial([0, l, [a,b,c,d], []]).
 final([17, r, [], [a,b,c,d]]).
-
-% Lados opuestos 
-opp(l, r).  
-opp(r, l).
 
 % Tiempos para cruzar
 crossTime(a, 1).
@@ -16,40 +11,41 @@ crossTime(d, 10).
 % inicializa el estado e imprime la solucion
 start :- 
     initial(InitState),
-    path(InitState, [], Sol),
+    solve(InitState, [], Sol),
     forall(member(X, Sol),
     (write(X), nl)).
 
 % Recursivamente revisa si puede hacer un camino probando todos los nodos
-path(Node, Path, [Node|Path]) :- 
+solve(Node, Path, [Node|Path]) :- 
     final(Node).
-path(Node, Path, Sol) :- 
-    arc(Node, NewNode),
+solve(Node, Path, Sol) :- 
+    move(Node, Movement),
+    update(Node, Movement, NewNode),
+    legal(NewNode),
     not(member(NewNode, Path)),
-    path(NewNode, [Node|Path], Sol).
+    solve(NewNode, [Node|Path], Sol).
 
-% genera una movida y revisa si es valida 
-arc([T1, F1, L1, R1], [T2, F2, L2, R2]) :- 
-    opp(F1,F2),
-	(
-        (
-            F1 = l,
-            cross(L1, X), 
-            take(X, L1, L2),
-            append(X, R1, R2),
-            findTime(X, T),
-            T2 is T1 + T
-        );
-        (
-            F1 = r,
-            cross(R1, X), 
-            take(X, R1, R2),
-            append(X, L1, L2),
-            findTime(X, T),
-            T2 is T1 + T
-        )
-    ),
-    T2 < 18.
+% WIP
+move([_, l, Left, _], Movement) :-
+    cross(Left, Movement).
+move([_, r, _, Right], Movement) :-
+    cross(Right, Movement).
+
+% WIP
+update([Time1, l, Left1, Right1], Movement, [Time2, r, Left2, Right2]) :-
+    take(Movement, Left1, Left2),
+    append(Movement, Right1, Right2),
+    findTime(Movement, Time),
+    Time2 is Time1 + Time.
+update([Time1, r, Left1, Right1], Movement, [Time2, l, Left2, Right2]) :-
+    take(Movement, Right1, Right2),
+    append(Movement, Left1, Left2),
+    findTime(Movement, Time),
+    Time2 is Time1 + Time.
+
+% WIP
+legal([Time, _, _, _]) :-
+    Time < 18.
 
 % retorna todas las combinaciones de 1 persona y 2 personas del grupo [a,b,c,d] 
 cross(Group, X) :- 
