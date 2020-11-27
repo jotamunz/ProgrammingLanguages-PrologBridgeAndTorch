@@ -10,7 +10,8 @@ start :-
     initial(InitState),
     solve(InitState, [], Sol),
     forall(member(X, Sol),
-    (write(X), nl)).
+    (write(X), nl)),
+    reset.
 
 % insert settings
 insertPerson("Y") :-
@@ -39,6 +40,12 @@ insertTorchLimit :-
     write("Inserte la cantidad de personas que puede iluminar la antorcha: "),
     read(Torch),
     assert(maxTorch(Torch)).
+
+% remove all settings
+reset :-
+    retractall(crossTime(_,_)),
+    retractall(maxTime(_)),
+    retractall(maxTorch(_)).
 
 % Start and end states
 initial([0, l, Names, []]) :-
