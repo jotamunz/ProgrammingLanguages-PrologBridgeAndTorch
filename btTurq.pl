@@ -1,19 +1,44 @@
-% Estados 
-initial([0, l, [a,b,c,d], []]).
-final([17, r, [], [a,b,c,d]]).
+:- dynamic(crossTime/2).
+:- dynamic(maxTime/1).
 
-% Tiempos para cruzar
-crossTime(a, 1).
-crossTime(b, 2).
-crossTime(c, 5).
-crossTime(d, 10).
-
-% inicializa el estado e imprime la solucion
+% insert run conditions, solve, and print the solution
 start :- 
+    insertPerson("Y"),
+    insertTimeLimit,
     initial(InitState),
     solve(InitState, [], Sol),
     forall(member(X, Sol),
     (write(X), nl)).
+
+% insert a person with their crossing time
+insertPerson("Y") :-
+    write("Inserte el nombre de una persona "),
+    read(Name),
+    write("Inserte el tiempo que tarda en cruzar el puente "),
+    read(Time),
+    assert(crossTime(Name, Time)),
+    write("Desea ingresar otra persona? (Y/N) "),
+    read(X),
+    insertPerson(X).
+
+insertPerson("N").
+
+insertPerson(_) :-
+    write("Comando no reconocido (Y/N) "),
+    read(X),
+    insertPerson(X).
+
+% insert time limit to cross the bridge
+insertTimeLimit :-
+    write("Inserte el limite de tiempo para cruzar el puente "),
+    read(Time),
+    assert(maxTime(Time)).
+
+% Start and end states
+initial([0, l, Names, []]) :-
+    findall(Name, crossTime(Name, _), Names).
+    
+final([_, r, [], _]).
 
 % Recursivamente revisa si puede hacer un camino probando todos los nodos
 solve(Node, Path, [Node|Path]) :- 
@@ -45,7 +70,8 @@ update([Time1, r, Left1, Right1], Movement, [Time2, l, Left2, Right2]) :-
 
 % WIP
 legal([Time, _, _, _]) :-
-    Time < 18.
+    maxTime(X),
+    Time < X.
 
 % retorna todas las combinaciones de 1 persona y 2 personas del grupo [a,b,c,d] 
 cross(Group, X) :- 
