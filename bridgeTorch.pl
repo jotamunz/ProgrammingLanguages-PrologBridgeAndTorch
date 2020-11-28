@@ -9,16 +9,17 @@ start :-
     insertTorchLimit,
     initial(InitState),
     solve(InitState, [], Sol),
-    forall(member(X, Sol),
-    (write(X), nl)),
+    forall(member(X, Sol), (write(X), nl)),
     reset.
 
 % Insert settings
 insertPerson("Y") :-
     write("Inserte el nombre de una persona: "),
     read(Name),
+    atom(Name),
     write("Inserte el tiempo que tarda en cruzar el puente: "),
     read(Time),
+    rational(Time),
     assert(crossTime(Name, Time)),
     write("Desea ingresar otra persona? (Y/N): "),
     read(X),
@@ -26,19 +27,16 @@ insertPerson("Y") :-
 
 insertPerson("N").
 
-insertPerson(_) :-
-    write("Comando no reconocido (Y/N): "),
-    read(X),
-    insertPerson(X).
-
 insertTimeLimit :-
     write("Inserte el limite de tiempo para cruzar el puente: "),
     read(Time),
+    rational(Time),
     assert(maxTime(Time)).
 
 insertTorchLimit :-
     write("Inserte la cantidad de personas que puede iluminar la antorcha: "),
     read(Torch),
+    integer(Torch),
     assert(maxTorch(Torch)).
 
 % Remove all settings
