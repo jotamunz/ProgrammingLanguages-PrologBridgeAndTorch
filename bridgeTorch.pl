@@ -85,10 +85,10 @@ update([Time1, r, Left1, Right1], Movement, [Time2, l, Left2, Right2]) :-
     maxList(Times, MaxTime),
     Time2 is Time1 + MaxTime.
 
-% WIP
+% Checks if the total time is less than the max time
 legal([Time, _, _, _]) :-
     maxTime(X),
-    Time < X.
+    Time =< X.
 
 % If there are more people than the max capacity, cross the max
 % If there are less people than the max capacity, cross them all
