@@ -2,7 +2,7 @@
 :- dynamic(maxTime/1).
 :- dynamic(maxTorch/1).
 
-% initialize, solve, and print the solution
+% Initialize, solve, and print the solution
 start :- 
     insertPerson("Y"),
     insertTimeLimit,
@@ -13,7 +13,7 @@ start :-
     (write(X), nl)),
     reset.
 
-% insert settings
+% Insert settings
 insertPerson("Y") :-
     write("Inserte el nombre de una persona: "),
     read(Name),
@@ -41,7 +41,7 @@ insertTorchLimit :-
     read(Torch),
     assert(maxTorch(Torch)).
 
-% remove all settings
+% Remove all settings
 reset :-
     retractall(crossTime(_,_)),
     retractall(maxTime(_)),
@@ -64,24 +64,26 @@ solve(Node, Path, Sol) :-
     solve(NewNode, [Node|Path], Sol).
 
 % If the torch is on the left, calculate the max amount of crossers and generate all combs
-% If the torch is on the right, generate all combinatios of 1 person
+% If the torch is on the right, generate all combinations of 1 person
 move([_, l, Left, _], Movement) :-
     crossers(Left, N),
     comb(N, Left, Movement).
 move([_, r, _, Right], Movement) :-
     comb(1, Right, Movement).
 
-% WIP
+% Moves people from one side to another and updates the total time based on the slowest
 update([Time1, l, Left1, Right1], Movement, [Time2, r, Left2, Right2]) :-
     take(Movement, Left1, Left2),
     append(Movement, Right1, Right2),
-    findTime(Movement, Time),
-    Time2 is Time1 + Time.
+    findTimes(Movement, Times),
+    maxList(Times, MaxTime),
+    Time2 is Time1 + MaxTime.
 update([Time1, r, Left1, Right1], Movement, [Time2, l, Left2, Right2]) :-
     take(Movement, Right1, Right2),
     append(Movement, Left1, Left2),
-    findTime(Movement, Time),
-    Time2 is Time1 + Time.
+    findTimes(Movement, Times),
+    maxList(Times, MaxTime),
+    Time2 is Time1 + MaxTime.
 
 % WIP
 legal([Time, _, _, _]) :-
@@ -101,7 +103,13 @@ crossers(Group, X) :-
     Len < N,
     X is Len.
 
-% Generates all combinatios of N elements in a list
+% Generates an array with the times of a group of people
+findTimes([], []).
+findTimes([Name|People], [Time|CrsTimes]) :- 
+    crossTime(Name, Time),
+    findTimes(People, CrsTimes).
+
+% Generates all combinations of N elements in a list
 comb(N, List, X) :-
     length(X, N),
     mem1(X, List).
@@ -115,15 +123,12 @@ mem1([H|T], Y) :-
 rest(A, List, R) :- 
     append(_, [A|R], List), !.
 
-% retorna el tiempo maximo que le toma cruzar a 1 o 2 personas 
-findTime([X], CrsTime) :- 
-    crossTime(X, CrsTime).
-findTime([X,Y], CrsTime) :- 
-    crossTime(X, CrsTimeX),
-    crossTime(Y, CrsTimeY),
-    CrsTime is max(CrsTimeX, CrsTimeY).
+% Removes the given elements from a list
+take(Elem, List, X) :- 
+    findall(Z, (member(Z, List), not(member(Z, Elem))), X).
 
-% retorna el grupo de personas sin las personas especificadas 
-take(People, Group, X) :- 
-    findall(Z, (member(Z, Group),
-    not(member(Z, People))), X).
+% Obtains the max number from a list
+maxList(List, M):- 
+    member(M, List), 
+    findall(X, (member(X, List), X > M), New),
+    length(New, 0).
