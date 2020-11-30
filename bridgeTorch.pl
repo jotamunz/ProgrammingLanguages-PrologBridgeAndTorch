@@ -2,22 +2,18 @@
 :- dynamic(maxTime/1).
 :- dynamic(maxTorch/1).
 
-% Initialize, solve, and print the solution
-start :- 
+% Insert settings
+setup :- 
     insertPerson("Y"),
     insertTimeLimit,
     insertTorchLimit,
-    initial(InitState),
-    solve(InitState, [], Sol),
-    forall(member(X, Sol), (write(X), nl)),
-    reset.
+    insertSolveMethod.
 
-% Insert settings
 insertPerson("Y") :-
-    write("Inserte el nombre de una persona: "),
+    write("Ingrese el nombre de una persona: "),
     read(Name),
     atom(Name),
-    write("Inserte el tiempo que tarda en cruzar el puente: "),
+    write("Ingrese el tiempo que tarda en cruzar el puente: "),
     read(Time),
     rational(Time),
     assert(crossTime(Name, Time)),
@@ -28,16 +24,37 @@ insertPerson("Y") :-
 insertPerson("N").
 
 insertTimeLimit :-
-    write("Inserte el limite de tiempo para cruzar el puente: "),
+    write("Ingrese el limite de tiempo para cruzar el puente: "),
     read(Time),
     rational(Time),
     assert(maxTime(Time)).
 
 insertTorchLimit :-
-    write("Inserte la cantidad de personas que puede iluminar la antorcha: "),
+    write("Ingrese la cantidad de personas que puede iluminar la antorcha: "),
     read(Torch),
     integer(Torch),
     assert(maxTorch(Torch)).
+
+insertSolveMethod :-
+    write("Inserte el metodo de resolucion; Depth-First (1), Hill-Climbing (2), Best-First (3): "),
+    read(Method),
+    integer(Method),
+    Method > 0,
+    Method =< 3,
+    start(Method). 
+
+% Solve and print
+start(1) :-
+    initial(InitState),
+    solveDF(InitState, [], Sol),
+    forall(member(X, Sol), (write(X), nl)),
+    reset.
+
+start(2) :-
+    initial(InitState),
+    solveHC(InitState, [], Sol),
+    forall(member(X, Sol), (write(X), nl)),
+    reset.
 
 % Remove all settings
 reset :-
@@ -51,15 +68,19 @@ initial([0, l, Names, []]) :-
     
 final([_, r, [], _]).
 
+/*
+*  DEPTH FIRST SEARCH
+*/
+
 % Recursively checks if a path can be made through all node combinations
-solve(Node, Path, [Node|Path]) :- 
+solveDF(Node, Path, [Node|Path]) :- 
     final(Node).
-solve(Node, Path, Sol) :- 
+solveDF(Node, Path, Sol) :- 
     move(Node, Movement),
     update(Node, Movement, NewNode),
     legal(NewNode),
     not(member(NewNode, Path)),
-    solve(NewNode, [Node|Path], Sol).
+    solveDF(NewNode, [Node|Path], Sol).
 
 % If the torch is on the left, calculate the max amount of crossers and generate all combs
 % If the torch is on the right, generate all combinations of 1 person
@@ -130,3 +151,41 @@ maxList(List, M):-
     member(M, List), 
     findall(X, (member(X, List), X > M), New),
     length(New, 0).
+
+/*
+*  HILL CLIMBING
+*/
+
+% Recursively checks if a path can be made through all node combinations in order according to value
+solveHC(Node, Path, [Node|Path]) :- 
+    final(Node).
+solveHC(Node, Path, Sol) :- 
+    hillClimb(Node, Movement),
+    update(Node, Movement, NewNode),
+    legal(NewNode),
+    not(member(NewNode, Path)),
+    solveHC(NewNode, [Node|Path], Sol).
+
+% Generates all node combinations from a node and orders them according to value
+hillClimb(Node, Movement) :-
+    findall(X, move(Node, X), Moves),
+    evaluateOrder(Node, Moves, [], OrderedMoves),
+    member((Movement, _), OrderedMoves).
+
+% Recursively evaluates all moves and orders the list by highest value
+evaluateOrder(_, [], Accumulated, Accumulated).
+evaluateOrder(Node, [Movement|Moves], Accumulated, OrderedMoves) :-
+    update(Node, Movement, NewNode),        
+    value(NewNode, Value),               
+    insertPair((Movement, Value), Accumulated, Z), 
+    evaluateOrder(Node, Moves, Z, OrderedMoves).
+
+% Inserts a tuple in an ordered list based on the second element
+insertPair(MV, [], [MV]).
+insertPair((M, V), [(M1, V1)|MVs], [(M, V), (M1, V1)|MVs]) :-
+    V >= V1.
+insertPair((M, V), [(M1, V1)|MVs], [(M1, V1)|MVs1]) :-
+    V < V1,
+    insertPair((M, V), MVs, MVs1).
+
+value(_, 0).
