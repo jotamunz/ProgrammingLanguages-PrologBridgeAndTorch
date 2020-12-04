@@ -2,12 +2,22 @@
 :- dynamic(maxTime/1).
 :- dynamic(maxTorch/1).
 
+crossTime(a,1).
+crossTime(b,2).
+crossTime(c,5).
+crossTime(d,10).
+crossTime(e,15).
+crossTime(f,20).
+
+maxTime(42).
+
+maxTorch(2).
+
 % Insert settings
 setup :- 
     insertPerson("Y"),
     insertTimeLimit,
-    insertTorchLimit,
-    insertSolveMethod.
+    insertTorchLimit.
 
 insertPerson("Y") :-
     write("Ingrese el nombre de una persona: "),
@@ -35,26 +45,22 @@ insertTorchLimit :-
     integer(Torch),
     assert(maxTorch(Torch)).
 
-insertSolveMethod :-
-    write("Inserte el metodo de resolucion; Depth-First (1), Hill-Climbing (2), Best-First (3): "),
-    read(Method),
-    integer(Method),
-    Method > 0,
-    Method =< 3,
-    start(Method). 
-
 % Solve and print
-start(1) :-
+solveDepthFirst :-
     initial(InitState),
+    statistics(walltime, [TimeSinceStart | [TimeSinceLastCall]]),
     solveDF(InitState, [], Sol),
+    statistics(walltime, [NewTimeSinceStart | [ExecutionTime]]),
     forall(member(X, Sol), (write(X), nl)),
-    reset.
+    write('Execution took '), write(ExecutionTime), write(' ms.'), nl.
 
-start(2) :-
+solveHillClimb :-
     initial(InitState),
+    statistics(walltime, [TimeSinceStart | [TimeSinceLastCall]]),
     solveHC(InitState, [], Sol),
+    statistics(walltime, [NewTimeSinceStart | [ExecutionTime]]),
     forall(member(X, Sol), (write(X), nl)),
-    reset.
+    write('Execution took '), write(ExecutionTime), write(' ms.'), nl.
 
 % Remove all settings
 reset :-
@@ -188,4 +194,8 @@ insertPair((M, V), [(M1, V1)|MVs], [(M1, V1)|MVs1]) :-
     V < V1,
     insertPair((M, V), MVs, MVs1).
 
-value(_, 0).
+value([Time, l, _, _], Value) :-
+    maxTime(T),
+    Value is T - Time.
+
+value([Time, r, Left, Right], 0).
