@@ -2,16 +2,15 @@
 :- dynamic(maxTime/1).
 :- dynamic(maxTorch/1).
 
+% Temporary Settings
+maxTorch(2).
+maxTime(28).
 crossTime(a,1).
 crossTime(b,2).
 crossTime(c,5).
 crossTime(d,10).
 crossTime(e,15).
-crossTime(f,20).
-
-maxTime(42).
-
-maxTorch(2).
+%crossTime(f,20).
 
 % Insert settings
 setup :- 
@@ -88,12 +87,24 @@ solveDF(Node, Path, Sol) :-
     not(member(NewNode, Path)),
     solveDF(NewNode, [Node|Path], Sol).
 
-% If the torch is on the left, calculate the max amount of crossers and generate all combs
-% If the torch is on the right, generate all combinations of 1 person
+% Calculate the max amount of crossers permitted and generate all combs for that amount
 move([_, l, Left, _], Movement) :-
     crossers(Left, N),
+
+    % This method generates all combs for the max amount permitted to the least 
+%    inverseBetween(1, N, X),
+%    comb(X, Left, Movement).
+
+    % This method cuts the posibility tree by never crossing less than the max amount permitted
     comb(N, Left, Movement).
 move([_, r, _, Right], Movement) :-
+    
+    % This method generates all combs for the least amount permitted to the max 
+%    crossers(Right, N),
+%    between(1, N, X),
+%    comb(X, Right, Movement).
+
+    % This method cuts the posibility tree by never crossing more than 1
     comb(1, Right, Movement).
 
 % Moves people from one side to another and updates the total time based on the slowest
@@ -157,6 +168,14 @@ maxList(List, M):-
     member(M, List), 
     findall(X, (member(X, List), X > M), New),
     length(New, 0).
+
+% Obtains all numbers in an inclusive range ordered from largest to smallest
+inverseBetween(L, H, H) :- 
+    H >= L.
+inverseBetween(L, H, X) :- 
+    H1 is H - 1, 
+    H1 >= L, 
+    inverseBetween(L, H1, X).
 
 /*
 *  HILL CLIMBING
