@@ -4,13 +4,13 @@
 
 % Temporary Settings
 maxTorch(2).
-maxTime(28).
+maxTime(42).
 crossTime(a,1).
 crossTime(b,2).
 crossTime(c,5).
 crossTime(d,10).
 crossTime(e,15).
-%crossTime(f,20).
+crossTime(f,20).
 fst(a).
 snd(b).
 
@@ -215,21 +215,39 @@ insertPair((M, V), [(M1, V1)|MVs], [(M1, V1)|MVs1]) :-
     V < V1,
     insertPair((M, V), MVs, MVs1).
 
+% When the torch is on the right
+% Pick the fastest group that leaves the most people on the right
 value([_, _, _, _], [Time, l, _, Right], Value) :-
     length(Right, Len),
     Value is 0 - Time + (Len * 100).
 
-value([_, _, CurrentLeft, _], [_, r, Left, Right], Value) :-
+% When the torch is on the left and the first and second fastest are on the same side
+% Pick the group that leaves the slowest people on the left and adds the most to the right
+value([_, _, CurrentLeft, CurrentRight], [_, r, Left, Right], Value) :-
     snd(B),
-    member(B, CurrentLeft),
     fst(A),
-    member(A, CurrentLeft),
+    (
+        (member(B, CurrentLeft),
+        member(A, CurrentLeft));
+        (member(B, CurrentRight),
+        member(A, CurrentRight))
+    ),
     length(Right, Len),
     findTimes(Left, Times),
     sumList(Times, SumOfTimes),
     Value is 0 + SumOfTimes + (Len * 100).
 
-value([_, _, _, _], [_, r, Left, Right], Value) :-
+% When the torch is on the left and the first and second fastest are on opposite sides
+% Pick the group that leaves the fastest people on the left and adds the most to the right
+value([_, _, CurrentLeft, CurrentRight], [_, r, Left, Right], Value) :-
+    snd(B),
+    fst(A),
+    (
+        (member(B, CurrentRight),
+        member(A, CurrentLeft));
+        (member(B, CurrentLeft),
+        member(A, CurrentRight))
+    ),
     length(Right, Len),
     findTimes(Left, Times),
     sumList(Times, SumOfTimes),
