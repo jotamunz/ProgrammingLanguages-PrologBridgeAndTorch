@@ -11,6 +11,8 @@ crossTime(c,5).
 crossTime(d,10).
 crossTime(e,15).
 %crossTime(f,20).
+fst(a).
+snd(b).
 
 % Insert settings
 setup :- 
@@ -91,7 +93,7 @@ solveDF(Node, Path, Sol) :-
 move([_, l, Left, _], Movement) :-
     crossers(Left, N),
 
-    % This method generates all combs for the max amount permitted to the least 
+    % This method generates all combs for the max amount permitted up to the least 
 %    inverseBetween(1, N, X),
 %    comb(X, Left, Movement).
 
@@ -99,7 +101,7 @@ move([_, l, Left, _], Movement) :-
     comb(N, Left, Movement).
 move([_, r, _, Right], Movement) :-
     
-    % This method generates all combs for the least amount permitted to the max 
+    % This method generates all combs for the least amount permitted up to the max 
 %    crossers(Right, N),
 %    between(1, N, X),
 %    comb(X, Right, Movement).
@@ -201,7 +203,7 @@ hillClimb(Node, Movement) :-
 evaluateOrder(_, [], Accumulated, Accumulated).
 evaluateOrder(Node, [Movement|Moves], Accumulated, OrderedMoves) :-
     update(Node, Movement, NewNode),        
-    value(NewNode, Value),               
+    value(Node, NewNode, Value),               
     insertPair((Movement, Value), Accumulated, Z), 
     evaluateOrder(Node, Moves, Z, OrderedMoves).
 
@@ -213,8 +215,28 @@ insertPair((M, V), [(M1, V1)|MVs], [(M1, V1)|MVs1]) :-
     V < V1,
     insertPair((M, V), MVs, MVs1).
 
-value([Time, l, _, _], Value) :-
-    maxTime(T),
-    Value is T - Time.
+value([_, _, _, _], [Time, l, _, Right], Value) :-
+    length(Right, Len),
+    Value is 0 - Time + (Len * 100).
 
-value([Time, r, Left, Right], 0).
+value([_, _, CurrentLeft, _], [_, r, Left, Right], Value) :-
+    snd(B),
+    member(B, CurrentLeft),
+    fst(A),
+    member(A, CurrentLeft),
+    length(Right, Len),
+    findTimes(Left, Times),
+    sumList(Times, SumOfTimes),
+    Value is 0 + SumOfTimes + (Len * 100).
+
+value([_, _, _, _], [_, r, Left, Right], Value) :-
+    length(Right, Len),
+    findTimes(Left, Times),
+    sumList(Times, SumOfTimes),
+    Value is 0 - SumOfTimes + (Len * 100).
+
+% Generates the sum of all elements in a list
+sumList([], 0).
+sumList([H|T], Sum) :-
+    sumList(T, Rest),
+    Sum is H + Rest.
