@@ -6,13 +6,22 @@
 
 % Temporary Settings
 maxTorch(2).
-maxTime(42).
+maxTime(28).
 crossTime(a,1).
 crossTime(b,2).
 crossTime(c,5).
 crossTime(d,10).
 crossTime(e,15).
-crossTime(f,20).
+%crossTime(f,20).
+
+/*
+*  INSTRUCTIONS:
+*  If temporary settings are active:
+*      run any of: solveDepthFirst., solveHillClimb., solveBestFirst.
+*  Else:
+*      run setup. then any of: solveDepthFirst., solveHillClimb., solveBestFirst.
+*      to change the setup run reset. then setup.
+*/
 
 % Insert settings
 setup :- 
@@ -73,6 +82,15 @@ solveHillClimb :-
     setFastest,
     statistics(walltime, [TimeSinceStart | [TimeSinceLastCall]]),
     solveHC(InitState, [], Sol),
+    statistics(walltime, [NewTimeSinceStart | [ExecutionTime]]),
+    forall(member(X, Sol), (write(X), nl)),
+    write('Execution took '), write(ExecutionTime), write(' ms.'), nl.
+
+solveBestFirst :-
+    initial(InitState),
+    setFastest,
+    statistics(walltime, [TimeSinceStart | [TimeSinceLastCall]]),
+    solveBF([point(InitState, [InitState], 0)], [], Sol),
     statistics(walltime, [NewTimeSinceStart | [ExecutionTime]]),
     forall(member(X, Sol), (write(X), nl)),
     write('Execution took '), write(ExecutionTime), write(' ms.'), nl.
@@ -239,7 +257,8 @@ insertPair((M, V), [(M1, V1)|MVs], [(M1, V1)|MVs1]) :-
 % Pick the fastest group that leaves the most people on the right
 value([_, _, _, _], [Time, l, _, Right], Value) :-
     length(Right, Len),
-    Value is 0 - Time + (Len * 100).
+    maxTime(T),
+    Value is T - Time + (Len * 100) + 100.
 
 % When the torch is on the left and the first and second fastest are on the same side
 % Pick the group that leaves the slowest people on the left and adds the most to the right
@@ -255,7 +274,7 @@ value([_, _, CurrentLeft, CurrentRight], [_, r, Left, Right], Value) :-
     length(Right, Len),
     findTimes(Left, Times),
     sumList(Times, SumOfTimes),
-    Value is 0 + SumOfTimes + (Len * 100).
+    Value is SumOfTimes + (Len * 100).
 
 % When the torch is on the left and the first and second fastest are on opposite sides
 % Pick the group that leaves the fastest people on the left and adds the most to the right
@@ -271,7 +290,8 @@ value([_, _, CurrentLeft, CurrentRight], [_, r, Left, Right], Value) :-
     length(Right, Len),
     findTimes(Left, Times),
     sumList(Times, SumOfTimes),
-    Value is 0 - SumOfTimes + (Len * 100).
+    maxTime(T),
+    Value is T - SumOfTimes + (Len * 100).
 
 % Generates the sum of all elements in a list
 sumList([], 0).
@@ -282,4 +302,70 @@ sumList([H|T], Sum) :-
 /*
 *  BEST FIRST SEARCH
 */
+
+% Recursively checks if a path can be made through all node combinations in order according to value
+solveBF([point(Node, History, _)|_], _, History) :- 
+    final(Node).
+solveBF([point(Node, History, _)|Frontier], Path, Sol) :- 
+    findall(X, move(Node, X), Moves),     
+    updates(Moves, History, Node, NewNodes),   
+    legals(NewNodes, ValidNodes),             
+    news(ValidNodes, Path, NewValidNodes),     
+    evaluates(Node, NewValidNodes, Points),         
+    inserts(Points, Frontier, NewFrontier), 
+    solveBF(NewFrontier, [Node|Path], Sol). 
+
+updates([], _, _, []).
+updates([Movement|Moves], History, Node, [(NewNode, [NewNode|History])|NewNodes]) :-
+    update(Node, Movement, NewNode),         
+    updates(Moves, History, Node, NewNodes). 
+
+legals([], []).  
+legals([(Node, History)|Nodes], [(Node, History)|ValidNodes]) :-
+    legal(Node),
+    legals(Nodes, ValidNodes).
+legals([(Node, _)|Nodes], ValidNodes) :-
+    not(legal(Node)),
+    legals(Nodes, ValidNodes).
+
+news([], _, []).
+news([(Node, _)|Nodes], Path, NewNodes) :-
+    member(Node, Path),
+    news(Nodes, Path, NewNodes).
+news([(Node, History)|Nodes], Path, [(Node, History)|NewNodes]) :-
+    not(member(Node, Path)),
+    news(Nodes, Path, NewNodes).
+    
+evaluates(_, [], []).
+evaluates(CurrentNode, [(Node, History)|Nodes], [point(Node, History, Value)|Points]) :-
+    value(CurrentNode, Node, Value),                
+    evaluates(CurrentNode, Nodes, Points).  
+
+inserts([], Frontier, Frontier).
+inserts([Point|Points], Frontier, NewFrontier) :-
+    insertPoint(Point, Frontier, Accumulated),  
+    inserts(Points, Accumulated, NewFrontier).    
+
+insertPoint(Point, [], [Point]).
+insertPoint(Point, [H|Points], [Point, H|Points]) :-
+    lessThan(H, Point).
+insertPoint(Point, [H|Points], [H|T]) :-
+    lessThan(Point, H),
+    insertPoint(Point, Points, T).
+insertPoint(Point, [H|Points], [H, Point|Points]) :-
+    equal(H, Point).
+insertPoint(Point, [H|Points], [H|Points]) :-
+    identical(Point, H).
+
+lessThan(point(S1, _, V1), point(S2, _, V2)) :- 
+    S1 \= S2, 
+    V1 < V2.
+equal(point(S1, _, V1), point(S2, _, V2)) :- 
+    S1 \= S2, 
+    V1 = V2.
+identical(point(S, _, V), point(S, _, V)).
+
+
+    
+
 
