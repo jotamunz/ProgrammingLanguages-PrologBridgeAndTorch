@@ -7,12 +7,12 @@
 % Temporary Settings
 maxTorch(2).
 maxTime(42).
-crossTime(a,1).
-crossTime(b,2).
-crossTime(c,5).
-crossTime(d,10).
-crossTime(e,15).
-crossTime(f,20).
+crossTime(alberto,1).
+crossTime(beatriz,2).
+crossTime(carlos,5).
+crossTime(dora,10).
+crossTime(emilio,15).
+crossTime(julio,20).
 
 /*
 *  INSTRUCTIONS:
