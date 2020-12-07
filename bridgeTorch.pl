@@ -1,6 +1,8 @@
 :- dynamic(crossTime/2).
 :- dynamic(maxTime/1).
 :- dynamic(maxTorch/1).
+:- dynamic(fst/1).
+:- dynamic(snd/1).
 
 % Temporary Settings
 maxTorch(2).
@@ -11,8 +13,6 @@ crossTime(c,5).
 crossTime(d,10).
 crossTime(e,15).
 crossTime(f,20).
-fst(a).
-snd(b).
 
 % Insert settings
 setup :- 
@@ -46,6 +46,19 @@ insertTorchLimit :-
     integer(Torch),
     assert(maxTorch(Torch)).
 
+setFastest :-
+    retractall(fst(_)),
+    retractall(snd(_)),
+    findall(Time, crossTime(_, Time), Times),
+    minList(Times, X),
+    crossTime(NameFst, X),!,
+    assert(fst(NameFst)),
+    select(X, Times, NewTimes),!,
+    minList(NewTimes, Y),
+    crossTime(NameSnd, Y),
+    NameFst \= NameSnd,!,
+    assert(snd(NameSnd)).
+
 % Solve and print
 solveDepthFirst :-
     initial(InitState),
@@ -57,6 +70,7 @@ solveDepthFirst :-
 
 solveHillClimb :-
     initial(InitState),
+    setFastest,
     statistics(walltime, [TimeSinceStart | [TimeSinceLastCall]]),
     solveHC(InitState, [], Sol),
     statistics(walltime, [NewTimeSinceStart | [ExecutionTime]]),
@@ -171,6 +185,12 @@ maxList(List, M):-
     findall(X, (member(X, List), X > M), New),
     length(New, 0).
 
+% Obtains the min number from a list
+minList(List, M):- 
+    member(M, List), 
+    findall(X, (member(X, List), X < M), New),
+    length(New, 0).
+
 % Obtains all numbers in an inclusive range ordered from largest to smallest
 inverseBetween(L, H, H) :- 
     H >= L.
@@ -258,3 +278,8 @@ sumList([], 0).
 sumList([H|T], Sum) :-
     sumList(T, Rest),
     Sum is H + Rest.
+
+/*
+*  BEST FIRST SEARCH
+*/
+
