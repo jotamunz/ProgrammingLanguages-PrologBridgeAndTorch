@@ -6,13 +6,13 @@
 
 % Temporary Settings
 maxTorch(2).
-maxTime(28).
+maxTime(42).
 crossTime(a,1).
 crossTime(b,2).
 crossTime(c,5).
 crossTime(d,10).
 crossTime(e,15).
-%crossTime(f,20).
+crossTime(f,20).
 
 /*
 *  INSTRUCTIONS:
@@ -221,7 +221,7 @@ inverseBetween(L, H, X) :-
 *  HILL CLIMBING
 */
 
-% Recursively checks if a path can be made through all node combinations in order according to value
+% Recursively checks if a path can be made through all node combinations in order according to the best value of the next moves
 solveHC(Node, Path, [Node|Path]) :- 
     final(Node).
 solveHC(Node, Path, Sol) :- 
@@ -257,8 +257,7 @@ insertPair((M, V), [(M1, V1)|MVs], [(M1, V1)|MVs1]) :-
 % Pick the fastest group that leaves the most people on the right
 value([_, _, _, _], [Time, l, _, Right], Value) :-
     length(Right, Len),
-    maxTime(T),
-    Value is T - Time + (Len * 100) + 100.
+    Value is 0 - Time + (Len * 100).
 
 % When the torch is on the left and the first and second fastest are on the same side
 % Pick the group that leaves the slowest people on the left and adds the most to the right
@@ -290,8 +289,7 @@ value([_, _, CurrentLeft, CurrentRight], [_, r, Left, Right], Value) :-
     length(Right, Len),
     findTimes(Left, Times),
     sumList(Times, SumOfTimes),
-    maxTime(T),
-    Value is T - SumOfTimes + (Len * 100).
+    Value is 0 - SumOfTimes + (Len * 100).
 
 % Generates the sum of all elements in a list
 sumList([], 0).
@@ -303,67 +301,84 @@ sumList([H|T], Sum) :-
 *  BEST FIRST SEARCH
 */
 
-% Recursively checks if a path can be made through all node combinations in order according to value
-solveBF([point(Node, History, _)|_], _, History) :- 
+% Recursively checks if a path can be made through all node combinations in order according to the best value of all
+solveBF([point(Node, Path, _)|_], _, Path) :- 
     final(Node).
-solveBF([point(Node, History, _)|Frontier], Path, Sol) :- 
+solveBF([point(Node, Path, _)|Frontier], History, Sol) :- 
     findall(X, move(Node, X), Moves),     
-    updates(Moves, History, Node, NewNodes),   
+    updates(Moves, Path, Node, NewNodes),   
     legals(NewNodes, ValidNodes),             
-    news(ValidNodes, Path, NewValidNodes),     
-    evaluates(Node, NewValidNodes, Points),         
-    inserts(Points, Frontier, NewFrontier), 
-    solveBF(NewFrontier, [Node|Path], Sol). 
+    news(ValidNodes, History, NewValidNodes),                            
+    evaluates(Node, NewValidNodes, Points, Max, Min),
+    rescale(Max, Min, Points, NewPoints),     
+    inserts(NewPoints, Frontier, NewFrontier), 
+    solveBF(NewFrontier, [Node|History], Sol). 
 
+% Recursively updates all movements and adds them to the path
 updates([], _, _, []).
-updates([Movement|Moves], History, Node, [(NewNode, [NewNode|History])|NewNodes]) :-
+updates([Movement|Moves], Path, Node, [(NewNode, [NewNode|Path])|NewNodes]) :-
     update(Node, Movement, NewNode),         
-    updates(Moves, History, Node, NewNodes). 
+    updates(Moves, Path, Node, NewNodes). 
 
+% Recursively removes ilegal nodes
 legals([], []).  
-legals([(Node, History)|Nodes], [(Node, History)|ValidNodes]) :-
+legals([(Node, Path)|Nodes], [(Node, Path)|ValidNodes]) :-
     legal(Node),
     legals(Nodes, ValidNodes).
 legals([(Node, _)|Nodes], ValidNodes) :-
     not(legal(Node)),
     legals(Nodes, ValidNodes).
 
+% Recursively removes repeated nodes
 news([], _, []).
-news([(Node, _)|Nodes], Path, NewNodes) :-
-    member(Node, Path),
-    news(Nodes, Path, NewNodes).
-news([(Node, History)|Nodes], Path, [(Node, History)|NewNodes]) :-
-    not(member(Node, Path)),
-    news(Nodes, Path, NewNodes).
+news([(Node, _)|Nodes], History, NewNodes) :-
+    member(Node, History),
+    news(Nodes, History, NewNodes).
+news([(Node, Path)|Nodes], History, [(Node, Path)|NewNodes]) :-
+    not(member(Node, History)),
+    news(Nodes, History, NewNodes).
     
-evaluates(_, [], []).
-evaluates(CurrentNode, [(Node, History)|Nodes], [point(Node, History, Value)|Points]) :-
+% Recusively generates the value of each node and the max and min from the list
+evaluates(_, [], [], 0, X) :-
+    X is inf.
+evaluates(CurrentNode, [(Node, Path)|Nodes], [point(Node, Path, Value)|Points], MaxValue, MinValue) :-
     value(CurrentNode, Node, Value),                
-    evaluates(CurrentNode, Nodes, Points).  
+    evaluates(CurrentNode, Nodes, Points, OldMaxValue, OldMinValue),
+    MaxValue is max(Value, OldMaxValue),
+    MinValue is min(Value, OldMinValue).
 
+% Rescales all values into 1-10, based on the best and worst move made
+rescale(_, _, [], []).
+rescale(Max, Min, [point(Node, Path, Value)|Points], [point(Node, Path, ScaledValue)|T]) :-
+    ScaledValue is (10 / (Max - (Min - 1))) * (Value - Max) + 10,
+    rescale(Max, Min, Points, T).
+    
+% Inserts orderly into the frontier according to value
 inserts([], Frontier, Frontier).
 inserts([Point|Points], Frontier, NewFrontier) :-
     insertPoint(Point, Frontier, Accumulated),  
     inserts(Points, Accumulated, NewFrontier).    
 
+% Insert a point in an ordered list according to value
 insertPoint(Point, [], [Point]).
 insertPoint(Point, [H|Points], [Point, H|Points]) :-
     lessThan(H, Point).
 insertPoint(Point, [H|Points], [H|T]) :-
     lessThan(Point, H),
     insertPoint(Point, Points, T).
-insertPoint(Point, [H|Points], [H, Point|Points]) :-
+insertPoint(Point, [H|Points], [Point, H|Points]) :-
     equal(H, Point).
 insertPoint(Point, [H|Points], [H|Points]) :-
     identical(Point, H).
 
-lessThan(point(S1, _, V1), point(S2, _, V2)) :- 
-    S1 \= S2, 
+% Compares two points
+lessThan(point(N1, _, V1), point(N2, _, V2)) :- 
+    N1 \= N2, 
     V1 < V2.
-equal(point(S1, _, V1), point(S2, _, V2)) :- 
-    S1 \= S2, 
-    V1 = V2.
-identical(point(S, _, V), point(S, _, V)).
+equal(point(N1, _, V1), point(N2, _, V2)) :- 
+    N1 \= N2, 
+    V1 =:= V2.
+identical(point(N, _, V), point(N, _, V)).
 
 
     
